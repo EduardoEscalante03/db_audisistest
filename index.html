@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard Facturación 2026 — Audisis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f0eeea;
+    --border: rgba(0,0,0,0.08);
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #9e9e9e;
+    --purple: #2D2B6B;
+    --purple-light: #EEEDFE;
+    --purple-mid: #534AB7;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--purple); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-logo { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .header-logo svg { width: 20px; height: 20px; fill: white; }
+  .header-title { color: white; font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .source-chip { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 6px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .last-update { color: rgba(255,255,255,0.45); font-size: 11px; }
+
+  /* MAIN */
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px 24px 48px; }
+
+  /* LOADING */
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--text2); font-size: 14px; }
+
+  /* ERROR */
+  .error-box { background: var(--red-light); border: 1px solid #f7c1c1; border-radius: 12px; padding: 20px 24px; color: var(--red); font-size: 14px; text-align: center; margin: 40px 0; }
+
+  /* FILTERS */
+  .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-label { font-size: 12px; color: var(--text2); font-weight: 500; margin-right: 4px; }
+  .pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .pill:hover { background: var(--surface2); }
+  .pill.on { background: var(--purple); color: #fff; border-color: var(--purple); }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 16px 18px; }
+  .kpi-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 16px; }
+  .kpi-label { font-size: 11px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .kpi-purple .kpi-icon { background: var(--purple-light); } .kpi-purple .kpi-value { color: var(--purple); }
+  .kpi-teal .kpi-icon { background: var(--teal-light); } .kpi-teal .kpi-value { color: var(--teal); }
+  .kpi-red .kpi-icon { background: var(--red-light); } .kpi-red .kpi-value { color: var(--red); }
+  .kpi-amber .kpi-icon { background: var(--amber-light); } .kpi-amber .kpi-value { color: var(--amber); }
+  .kpi-blue .kpi-icon { background: var(--blue-light); } .kpi-blue .kpi-value { color: var(--blue); }
+
+  /* CHARTS */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .charts-row.full { grid-template-columns: 1fr; }
+  .card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .card-sub { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { font-size: 11px; font-weight: 600; color: var(--text2); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; background: var(--surface2); }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child { border-radius: 0 8px 0 0; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg); }
+  .mono { font-family: 'Courier New', monospace; font-size: 11px; color: var(--text2); }
+  .badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; display: inline-block; white-space: nowrap; }
+  .badge-Pagada { background: #C6EFCE; color: #276221; }
+  .badge-Pendiente { background: #FFEB9C; color: #9C5700; }
+  .badge-Vencida { background: #FFC7CE; color: #9C0006; }
+  .badge-EnProceso { background: #BDD7EE; color: #1F4E79; }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 20px; color: var(--text3); font-size: 11px; border-top: 1px solid var(--border); margin-top: 8px; }
+
+  @media (max-width: 640px) {
+    .charts-row { grid-template-columns: 1fr; }
+    .header { padding: 14px 16px; }
+    .main { padding: 16px 12px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg>
+    </div>
+    <div>
+      <div class="header-title">Dashboard Facturación 2026</div>
+      <div class="header-sub">Audisis · Grupo Progestion</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="source-chip">
+      <div class="live-dot"></div>
+      Google Sheets · Live
+    </div>
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Cargando datos desde Google Sheets...</div>
+  </div>
+
+  <div id="dashboard" style="display:none;">
+    <div class="filters" id="filters">
+      <span class="filter-label">Mes:</span>
+    </div>
+    <div class="kpi-grid" id="kpis"></div>
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Facturación por cliente</div>
+        <div class="card-sub">Monto neto total CLP</div>
+        <div style="position:relative;height:220px;"><canvas id="chartClientes" role="img" aria-label="Facturación por cliente"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribución por estado</div>
+        <div class="card-sub">Porcentaje de facturas</div>
+        <div id="legendEstado" class="legend"></div>
+        <div style="position:relative;height:185px;"><canvas id="chartEstado" role="img" aria-label="Distribución por estado"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-row full" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title">Tendencia mensual por cliente</div>
+        <div class="card-sub">Evolución enero–mayo 2026</div>
+        <div id="legendTrend" class="legend"></div>
+        <div style="position:relative;height:200px;"><canvas id="chartTrend" role="img" aria-label="Tendencia mensual"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detalle de facturas</div>
+      <div class="card-sub" id="tableCount"></div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox" style="display:none;">
+    ⚠ No se pudo cargar el archivo. Verifica que el Google Sheet esté publicado como CSV.
+  </div>
+</main>
+
+<footer class="footer">
+  Dashboard generado con Claude · Datos en vivo desde Google Sheets · Audisis 2026
+</footer>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRe-69JfwNhZH5llHsWhJhS7NGT5PrsAwKhiIFhYIT5DX6H5SCqY_h02zhGozP8tg/pub?output=csv';
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo'];
+const CLIENT_COLORS = ['#2D2B6B','#0F6E56','#993C1D','#185FA5','#854F0B','#A32D2D','#3B6D11','#534AB7'];
+const ESTADO_COLORS = { 'Pagada':'#0F6E56','Pendiente':'#854F0B','Vencida':'#A32D2D','En Proceso':'#185FA5' };
+
+let allData = [], mesFiltro = 'Todos';
+let chartC, chartE, chartT;
+
+function fmtM(n) { return '$' + Math.round(n/1000000) + 'M'; }
+function fmt(n) { return '$' + Math.round(n).toLocaleString('es-CL'); }
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
+  return lines.slice(1).map(line => {
+    const vals = line.match(/(".*?"|[^,]+)(?=,|$)/g) || line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/"/g,'').trim(); });
+    return obj;
+  }).filter(r => r['ID Factura'] && r['ID Factura'].startsWith('FAC'));
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    allData = parseCSV(text).map(r => ({
+      id: r['ID Factura'],
+      cliente: r['Cliente'],
+      mes: r['Mes'],
+      neto: parseFloat(r['Monto Neto']) || 0,
+      estado: r['Estado']
+    }));
+    if (allData.length === 0) throw new Error('Sin datos');
+    document.getElementById('lastUpdate').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    buildFilters();
+    render();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'block';
+    console.error(e);
+  }
+}
+
+function buildFilters() {
+  const meses = ['Todos', ...MESES.filter(m => allData.some(r => r.mes === m))];
+  const el = document.getElementById('filters');
+  el.innerHTML = '<span class="filter-label">Mes:</span>';
+  meses.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (m === 'Todos' ? ' on' : '');
+    btn.textContent = m;
+    btn.onclick = () => {
+      mesFiltro = m;
+      document.querySelectorAll('.pill').forEach(b => b.classList.toggle('on', b.textContent === m));
+      render();
+    };
+    el.appendChild(btn);
+  });
+}
+
+function getData() {
+  return mesFiltro === 'Todos' ? allData : allData.filter(r => r.mes === mesFiltro);
+}
+
+function render() {
+  const data = getData();
+  renderKPIs(data);
+  renderChartClientes(data);
+  renderChartEstado(data);
+  renderChartTrend();
+  renderTable(data);
+}
+
+function renderKPIs(data) {
+  const total = data.reduce((s,r) => s+r.neto, 0);
+  const pagado = data.filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.neto,0);
+  const vencido = data.filter(r=>r.estado==='Vencida').reduce((s,r)=>s+r.neto,0);
+  const clientes = new Set(data.map(r=>r.cliente)).size;
+  const pctV = total>0 ? Math.round(vencido/total*100) : 0;
+  const pctP = total>0 ? Math.round(pagado/total*100) : 0;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi kpi-purple"><div class="kpi-icon">📊</div><div class="kpi-label">Total facturado</div><div class="kpi-value">${fmtM(total)}</div><div class="kpi-sub">${data.length} facturas</div></div>
+    <div class="kpi kpi-teal"><div class="kpi-icon">✅</div><div class="kpi-label">Pagado</div><div class="kpi-value">${fmtM(pagado)}</div><div class="kpi-sub">${pctP}% del total</div></div>
+    <div class="kpi kpi-red"><div class="kpi-icon">⚠️</div><div class="kpi-label">Vencido</div><div class="kpi-value">${fmtM(vencido)}</div><div class="kpi-sub">${pctV}% del total</div></div>
+    <div class="kpi kpi-amber"><div class="kpi-icon">🧾</div><div class="kpi-label">IVA estimado</div><div class="kpi-value">${fmtM(total*0.19)}</div><div class="kpi-sub">19% sobre neto</div></div>
+    <div class="kpi kpi-blue"><div class="kpi-icon">🏢</div><div class="kpi-label">Clientes</div><div class="kpi-value">${clientes}</div><div class="kpi-sub">activos en período</div></div>
+  `;
+}
+
+function renderChartClientes(data) {
+  const totales = {};
+  data.forEach(r => { totales[r.cliente] = (totales[r.cliente]||0) + r.neto; });
+  const sorted = Object.entries(totales).sort((a,b)=>b[1]-a[1]);
+  const labels = sorted.map(x=>x[0]);
+  const vals = sorted.map(x=>Math.round(x[1]));
+  const cols = labels.map((_,i)=>CLIENT_COLORS[i%CLIENT_COLORS.length]);
+  if (chartC) chartC.destroy();
+  chartC = new Chart(document.getElementById('chartClientes'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data:vals, backgroundColor:cols, borderRadius:4, borderSkipped:false }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>' '+fmtM(ctx.raw) } } },
+      scales:{
+        x:{ ticks:{ callback:v=>fmtM(v), font:{size:10} }, grid:{ color:'rgba(0,0,0,0.04)' } },
+        y:{ ticks:{ font:{size:11} }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function renderChartEstado(data) {
+  const counts = {};
+  data.forEach(r => { counts[r.estado]=(counts[r.estado]||0)+1; });
+  const labels = Object.keys(counts);
+  const vals = labels.map(k=>counts[k]);
+  const cols = labels.map(k=>ESTADO_COLORS[k]||'#888');
+  document.getElementById('legendEstado').innerHTML = labels.map((l,i)=>
+    `<div class="legend-item"><div class="legend-dot" style="background:${cols[i]}"></div>${l} (${vals[i]})</div>`
+  ).join('');
+  if (chartE) chartE.destroy();
+  chartE = new Chart(document.getElementById('chartEstado'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff' }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/data.length*100)}%)` } } }
+    }
+  });
+}
+
+function renderChartTrend() {
+  const clientes = [...new Set(allData.map(r=>r.cliente))].sort();
+  const datasets = clientes.map((c,i) => ({
+    label:c,
+    data: MESES.map(m => { const v=allData.filter(r=>r.cliente===c&&r.mes===m).reduce((s,r)=>s+r.neto,0); return v>0?Math.round(v):null; }),
+    borderColor: CLIENT_COLORS[i%CLIENT_COLORS.length],
+    backgroundColor: CLIENT_COLORS[i%CLIENT_COLORS.length]+'22',
+    tension:0.35, pointRadius:3, borderWidth:2, spanGaps:true
+  }));
+  document.getElementById('legendTrend').innerHTML = clientes.map((c,i)=>
+    `<div class="legend-item"><div class="legend-dot" style="background:${CLIENT_COLORS[i%CLIENT_COLORS.length]}"></div>${c}</div>`
+  ).join('');
+  if (chartT) chartT.destroy();
+  chartT = new Chart(document.getElementById('chartTrend'), {
+    type:'line',
+    data:{ labels:MESES, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>` ${ctx.dataset.label}: ${fmtM(ctx.raw)}` } } },
+      scales:{
+        x:{ ticks:{font:{size:11}}, grid:{color:'rgba(0,0,0,0.04)'} },
+        y:{ ticks:{callback:v=>fmtM(v),font:{size:10}}, grid:{color:'rgba(0,0,0,0.04)'} }
+      }
+    }
+  });
+}
+
+function renderTable(data) {
+  document.getElementById('tableCount').textContent = `${data.length} registros${mesFiltro!=='Todos'?' · '+mesFiltro:''}`;
+  const bk = e => e==='Pagada'?'badge-Pagada':e==='Pendiente'?'badge-Pendiente':e==='Vencida'?'badge-Vencida':'badge-EnProceso';
+  const rows = data.slice(0,20).map(r=>`
+    <tr>
+      <td class="mono">${r.id}</td>
+      <td><strong>${r.cliente}</strong></td>
+      <td>${r.mes}</td>
+      <td style="text-align:right">${fmt(r.neto)}</td>
+      <td style="text-align:right">${fmt(Math.round(r.neto*0.19))}</td>
+      <td style="text-align:right;font-weight:600">${fmt(Math.round(r.neto*1.19))}</td>
+      <td><span class="badge ${bk(r.estado)}">${r.estado}</span></td>
+    </tr>`).join('');
+  document.getElementById('tableWrap').innerHTML = `
+    <table>
+      <thead><tr><th>ID</th><th>Cliente</th><th>Mes</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${data.length>20?`<p style="font-size:11px;color:#9e9e9e;padding:10px 12px 0">${data.length-20} registros adicionales</p>`:''}
+  `;
+}
+
+loadData();
+</script>
+</body>
+</html>
